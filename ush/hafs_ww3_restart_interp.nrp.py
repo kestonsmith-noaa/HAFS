@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 ################################################################################
-# Script Name: hafs_ww3_restart_interp.py
+# Script Name: hafs_ww3_restart_interp.nrp.py
 # Author: Ali Salimi-Tarazouj, NCEP/EMC WAVE MODELING TEAM 
 # Abstract:
 #   This script interpolates a netcdf WW3 restart to another grid, using ESMPy
@@ -23,6 +23,9 @@
 # Note, there is a weights file that is created called WHTGRIDINT.nc if you 
 # create this file and put it in the run directory, subsequent calls to this script
 # will execute faster
+#
+# hafs_ww3_restart_interp.nrp.py is version of hafs_ww3_restart_interp.py that does 
+# not add the mask to the dst_scrip file written while trouble shooting
 ################################################################################
 
 
