@@ -1,7 +1,8 @@
 #! /usr/bin/env python3
 ################################################################################
-# Script Name: hafs_ww3_restart_interp.py
+# Script Name: hafs_ww3_restart_interp.test.noesmpy.py
 # Author: Ali Salimi-Tarazouj, NCEP/EMC WAVE MODELING TEAM 
+#       : modified by Keston Smith to not utilize esmpy
 # Abstract:
 #   This script interpolates a netcdf WW3 restart to another grid, using ESMPy
 # History:
@@ -23,6 +24,11 @@
 # Note, there is a weights file that is created called WHTGRIDINT.nc if you 
 # create this file and put it in the run directory, subsequent calls to this script
 # will execute faster
+#
+# hafs_ww3_restart_interp.test.noesmpy.py is a version of hafs_ww3_restart_interp.py
+# which does not use esmpy.  Appropriate interpolation weights need to exist in 
+# file "WHTGRIDINT.nc" when called.  This was developed to trouble shoot an error 
+# believed to be related to esmpy but was in fact related to corrupted input data. 
 ################################################################################
 
 
@@ -52,7 +58,7 @@ start_time = time.time()
 
 
 #######################################
-# === Create weights or resuse it  ===#
+# === resuse weights  ===#
 #######################################
 weights_file = "WHTGRIDINT.nc"
 with xr.open_dataset(weights_file) as ds_s:
@@ -106,16 +112,6 @@ print(str(nx_dst)+" by "+str(nx_src))
 matrix = sp.coo_matrix((weights, (row-1, col-1)), shape=(nx_dst,nx_src)).tocsr()
 print(matrix)
 
-
-##########################################
-# === Initialize ESMF and build grids ===#
-##########################################
-#esmpy.Manager()
-#src_mesh = esmpy.Mesh(filename=args.src_scrip, filetype=esmpy.FileFormat.SCRIP)
-#dst_grid = esmpy.Grid(filename=args.dst_scrip, filetype=esmpy.FileFormat.SCRIP)
-#src_field = esmpy.Field(src_mesh, meshloc=esmpy.MeshLoc.ELEMENT, ndbounds=[nt])
-#dst_field = esmpy.Field(dst_grid, staggerloc=esmpy.StaggerLoc.CENTER, ndbounds=[nt])
-
 #####################################################
 # === Step 1: Regrid and write to temporary file ===#
 #####################################################
@@ -137,11 +133,6 @@ with nc.Dataset(tmp_file, "w") as out_nc:
     nnn=nnn+1
     varin = src_nc.variables[varname]
     fill_value = varin.getncattr("_FillValue")
-
-# from gemini:Uninitialized "Bad" Values: If you are using a destination field that hasn't been 
-# initialized before a regridding operation, areas that do not map directly to the 
-# source grid might retain arbitrary garbage or default values.
-#    dst_field=np.zeros(nx_dst) # this shouldn't matter (and doesn't)
     if (nnn>685) and (nnn< 695):
       print(varin)
     
@@ -151,8 +142,6 @@ with nc.Dataset(tmp_file, "w") as out_nc:
     src_data=np.zeros((nt,nx_src))
     src_data[:] = varin[:].reshape(nt, nx_src)
 
-#    src_data = varin[:].reshape(nt, nx_src)
-
     if (nnn>685) and (nnn< 695):
       print(src_data)
 
@@ -160,22 +149,12 @@ with nc.Dataset(tmp_file, "w") as out_nc:
       jfill=np.where(src_data==fill_value)
       src_data[jfill]=nan
 
-#    src_field.data[...] = np.asfortranarray(src_data.T)
-#    HighLimit=np.max(src_field.data)
     HighLimit=np.max(src_data)
     if nnn<7900:
       print(varname+" High value of input field = ")
       print(HighLimit)
 
-#    dst_field = regrid(src_field, dst_field)
-#    dst_data = dst_field.data[...].T
     # 3. Perform Multiplication
-#    result_values = matrix @ dense_data
-    
-
-#    dst_field = matrix @ src_field.data
-#    print(src_data)    
-#    print(src_data.shape)
     dst_field = matrix @ src_data.T
     jHigh=np.where(dst_field > HighLimit)
     dst_field[jHigh]=HighLimit
